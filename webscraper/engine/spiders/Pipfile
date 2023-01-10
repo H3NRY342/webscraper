@@ -5,8 +5,11 @@ name = "pypi"
 
 [packages]
 selenium = "*"
+webdriver-manager = "*"
+bs4 = "*"
+pandas = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.9"
+python_version = "3.10"
