@@ -101,7 +101,7 @@ class webScraper (object):
         workbook = load_workbook(filename='template.xlsx')
         worksheet = workbook.active
         # resize cells
-        for row in range(2, len(self.productos_list)):
+        for row in range(2, len(self.productos_list)+4):
             worksheet.row_dimensions[row].height = 160
             col_letter = get_column_letter(8)
             worksheet.column_dimensions[col_letter].width = 40
@@ -131,8 +131,8 @@ class webScraper (object):
                 image_to_save.save(image_path)
 
                 time.sleep(4)
-                for index_categories in range(len(categories)):
-                    worksheet.cell(row=i+2, column=i+1,
+                for index_categories in range(len(categories)-1):
+                    worksheet.cell(row=i+2, column=index_categories+1,
                                    value=categories[index_categories])
                 worksheet.cell(row=i+2, column=6, value=titulo)
                 worksheet.cell(row=i+2, column=7, value=precio)
