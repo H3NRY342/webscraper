@@ -201,8 +201,8 @@ class webScraper (object):
                         worksheet.cell(row=products_i+2,
                                        column=16, value=dataSheet['contenido'])
 
-                        worksheet.add_image(Image(image_path),
-                                            anchor='Q'+str(products_i+2))
+                    worksheet.add_image(Image(image_path),
+                                        anchor='Q'+str(products_i+2))
                 except Exception as e:
                     print("[ERROR] PRODUCTO NO ENCONTRADO: " +
                           self.list_categories[list_category_i]["products"][products_i]['link'])
@@ -327,7 +327,6 @@ class webScraper (object):
                     self.parent_categories = [self.parent_categories[0]]
                     self.child_categories = []
                     self.node_count = 0
-
 
     #     time.sleep(1000)
 clase1 = webScraper()
