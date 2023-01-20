@@ -16,6 +16,7 @@ from PIL import Image as PImage
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image
 from openpyxl.utils import get_column_letter
+from datetime import date
 
 
 class webScraper (object):
@@ -29,7 +30,7 @@ class webScraper (object):
         ChromeDriverManager().install()), chrome_options=chrome_options)
     # driver.minimize_window()
     driver.maximize_window()
-    driver.get("https://www.homecenter.com.co/homecenter-co/product/455376/bateria-10-piezas-antiadherente-gris-talent/455376/")
+    driver.get("https://www.homecenter.com.co/")
     html = driver.page_source
     time.sleep(1)
     botones: list = []
@@ -122,19 +123,21 @@ class webScraper (object):
     def map_product_data(self):
         workbook = load_workbook(filename='template.xlsx')
         worksheet = workbook.active
+        excel_row = 0
         # resize cells
-
         for row in range(2, self.get_total_products()+2):
             worksheet.row_dimensions[row].height = 160
-            col_letter = get_column_letter(17)
+            col_letter = get_column_letter(34)
             worksheet.column_dimensions[col_letter].width = 40
 
         for list_category_i in range(len(self.list_categories)):
             for products_i in range(len(self.list_categories[list_category_i]["products"])):
                 try:
+                    print("[SCAN] PRODUCTO: " +
+                          self.list_categories[list_category_i]["products"][products_i]['link'])
                     self.driver.get(
                         self.list_categories[list_category_i]["products"][products_i]['link'])
-                    time.sleep(6)
+                    time.sleep(2.5)
                     titulo = self._normalice_string(self.driver.find_element(
                         By.XPATH, '//*[@id="__next"]/div/div/div[4]/div[2]/div[1]/div[1]/h1').text)
                     precio = self.driver.find_element(
@@ -142,6 +145,21 @@ class webScraper (object):
                     marca = self._normalice_string(self.driver.find_element(
                         By. XPATH, '//*[@id="__next"]/div/div/div[4]/div[2]/div[1]/div[1]/div[1]/div[1]').text)
                     dataSheet = self.map_datasheet()
+                    try:
+                        home_delivery = self._normalice_string(self.driver.find_element(
+                            By. XPATH, '//*[@id="__next"]/div/div/div[4]/div[2]/div[3]/div[2]/div[2]/div[1]/div[1]').text)
+                    except:
+                        home_delivery = ""
+                    try:
+                        pick_up_in_store = self._normalice_string(self.driver.find_element(
+                            By. XPATH, '//*[@id="__next"]/div/div/div[4]/div[2]/div[3]/div[4]/div[2]/div[1]/div[1]').text)
+                    except:
+                        pick_up_in_store = ""
+                    try:
+                        stock_in_store = self._normalice_string(self.driver.find_element(
+                            By. XPATH, '//*[@id="__next"]/div/div/div[4]/div[2]/div[3]/div[5]/div[2]/div[1]/div[1]').text)
+                    except:
+                        stock_in_store = ""
                     categories = self.list_categories[list_category_i]["categories"]
                     # find and save image
                     image_path = ".\\imagenes\\" + \
@@ -150,59 +168,115 @@ class webScraper (object):
                         By.XPATH, '//*[@id="pdpMainImage-' + self.list_categories[list_category_i]["products"][products_i]['id'] + '"]')
                     result = image.screenshot_as_png
                     image_to_save = PImage.open(io.BytesIO(result))
-                    image_to_save.thumbnail((220, 220))
-                    image_to_save.save(image_path)
+                    image_to_save.thumbnail((200, 200))
+                    image_to_save.save(image_path, optimize=True, quality=95)
 
                     time.sleep(3)
                     for index_categories in range(len(categories)):
-                        worksheet.cell(row=products_i+2, column=index_categories+1,
+                        worksheet.cell(row=excel_row+2, column=index_categories+1,
                                        value=categories[index_categories])
 
-                    worksheet.cell(row=products_i+2,
+                    worksheet.cell(row=excel_row+2,
                                    column=6, value=marca)
-                    worksheet.cell(row=products_i+2,
+                    worksheet.cell(row=excel_row+2,
                                    column=7, value=titulo)
-                    worksheet.cell(row=products_i+2,
-                                   column=8, value=precio)
+                    if "modelo" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=8, value=dataSheet['modelo'])
+                    worksheet.cell(row=excel_row+2,
+                                   column=9, value=precio)
+                    if "coleccion" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=10, value=dataSheet['coleccion'])
+                    if "tipo" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=11, value=dataSheet['tipo'])
                     if "dimensiones" in dataSheet:
-                        worksheet.cell(row=products_i+2,
-                                       column=9, value=dataSheet['dimensiones'])
+                        worksheet.cell(row=excel_row+2,
+                                       column=12, value=dataSheet['dimensiones'])
                     if "largo_(cm)" in dataSheet:
-                        worksheet.cell(row=products_i+2,
-                                       column=10, value=dataSheet['largo_(cm)'])
+                        worksheet.cell(row=excel_row+2,
+                                       column=13, value=dataSheet['largo_(cm)'])
                     if "largo" in dataSheet:
-                        worksheet.cell(row=products_i+2,
-                                       column=10, value=dataSheet['largo'])
+                        worksheet.cell(row=excel_row+2,
+                                       column=13, value=dataSheet['largo'])
                     if "ancho_(cm)" in dataSheet:
-                        worksheet.cell(row=products_i+2,
-                                       column=11, value=dataSheet['ancho_(cm)'])
+                        worksheet.cell(row=excel_row+2,
+                                       column=14, value=dataSheet['ancho_(cm)'])
                     if "ancho" in dataSheet:
-                        worksheet.cell(row=products_i+2,
-                                       column=11, value=dataSheet['ancho'])
+                        worksheet.cell(row=excel_row+2,
+                                       column=14, value=dataSheet['ancho'])
                     if "alto_(cm)" in dataSheet:
-                        worksheet.cell(row=products_i+2,
-                                       column=12, value=dataSheet['alto_(cm)'])
+                        worksheet.cell(row=excel_row+2,
+                                       column=15, value=dataSheet['alto_(cm)'])
                     if "alto" in dataSheet:
-                        worksheet.cell(row=products_i+2,
-                                       column=12, value=dataSheet['alto'])
+                        worksheet.cell(row=excel_row+2,
+                                       column=15, value=dataSheet['alto'])
                     if "diametro" in dataSheet:
-                        worksheet.cell(row=products_i+2,
-                                       column=13, value=dataSheet['diametro'])
-                    if "color" in dataSheet:
-                        worksheet.cell(row=products_i+2,
-                                       column=14, value=dataSheet['color'])
-                    if "uso_(domestico_o/y_institucional)" in dataSheet:
-                        worksheet.cell(row=products_i+2,
-                                       column=15, value=dataSheet['uso_(domestico_o/y_institucional)'])
-                    if "uso" in dataSheet:
-                        worksheet.cell(row=products_i+2,
-                                       column=15, value=dataSheet['uso'])
-                    if "contenido" in dataSheet:
-                        worksheet.cell(row=products_i+2,
-                                       column=16, value=dataSheet['contenido'])
+                        worksheet.cell(row=excel_row+2,
+                                       column=16, value=dataSheet['diametro'])
+                    if "peso" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=17, value=dataSheet['peso'])
+                    if "capacidad_volumetrica" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=18, value=dataSheet['capacidad_volumetrica'])
+                    if "numero_de_piezas" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=19, value=dataSheet['numero_de_piezas'])
 
+                    if "color" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=20, value=dataSheet['color'])
+                    if "material" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=21, value=dataSheet['material'])
+                    if "forma" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=22, value=dataSheet['forma'])
+                    if "uso_(domestico_o/y_institucional)" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=23, value=dataSheet['uso_(domestico_o/y_institucional)'])
+                    if "uso" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=23, value=dataSheet['uso'])
+                    if "origen" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=24, value=dataSheet['origen'])
+                    if "pais_de_origen" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=24, value=dataSheet['pais_de_origen'])
+                    if "procedencia" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=24, value=dataSheet['procedencia'])
+                    if "garantia" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=25, value=dataSheet['garantia'])
+                    if "caracteristicas" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=26, value=dataSheet['caracteristicas'])
+                    if "contenido" in dataSheet:
+                        worksheet.cell(row=excel_row+2,
+                                       column=27, value=dataSheet['contenido'])
+                    worksheet.cell(row=excel_row+2,
+                                   column=28, value=home_delivery)
+                    worksheet.cell(row=excel_row+2,
+                                   column=29, value=pick_up_in_store)
+                    worksheet.cell(row=excel_row+2,
+                                   column=30, value=stock_in_store)
+                    today = date.today()
+                    worksheet.cell(row=excel_row+2,
+                                   column=31, value=today)
+                    worksheet.cell(row=excel_row+2,
+                                   column=32, value=self.list_categories[list_category_i]["products"][products_i]['link'])
+                    worksheet.cell(row=excel_row+2,
+                                   column=33, value=self.list_categories[list_category_i]["products"][products_i]['id'])
+            
                     worksheet.add_image(Image(image_path),
-                                        anchor='Q'+str(products_i+2))
+                                        anchor='AH'+str(excel_row+2))
+
+                    excel_row += 1
+
                 except Exception as e:
                     print("[ERROR] PRODUCTO NO ENCONTRADO: " +
                           self.list_categories[list_category_i]["products"][products_i]['link'])
@@ -210,6 +284,7 @@ class webScraper (object):
                     continue
 
         workbook.save('salida.xlsx')
+        workbook.close()
 
     def get_total_products(self):
         total = 0
@@ -328,6 +403,7 @@ class webScraper (object):
                     self.child_categories = []
                     self.node_count = 0
 
+
     #     time.sleep(1000)
 clase1 = webScraper()
 # clase1.get_categories()
@@ -336,7 +412,6 @@ clase1.get_categories_params()
 clase1.load_data()
 clase1.get_categories_test()
 clase1.map_product_data()
-clase1.map_datasheet()
 
 # clase1.scan_page()
 # clase1.producto()
