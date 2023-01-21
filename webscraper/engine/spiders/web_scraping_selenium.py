@@ -12,6 +12,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from PIL import Image as PImage
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image
@@ -25,11 +27,29 @@ class webScraper (object):
 
     # driver = 'D:\ProyectosCarToro\scraping\webscraper\webscraper\ChromeSetup.exe'
     chrome_options = webdriver.ChromeOptions()
+    chrome_options.set_capability("acceptInsecureCerts", True)
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--mute-audio')
+    chrome_options.add_argument('--ignore-certificate-errors')
+    chrome_options.add_argument('--ignore-ssl-errors')
+    chrome_options.add_argument('--disable-infobars')
+    chrome_options.add_argument('--ignore-certificate-errors-spki-list')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--no-zygote')
+    chrome_options.add_argument('--log-level=3')
+    chrome_options.add_argument('--allow-running-insecure-content')
+    chrome_options.add_argument('--disable-web-security')
+    chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+    chrome_options.add_argument('--disable-breakpad')
+
+    desired_capabilities = chrome_options.to_capabilities()
     # chrome_options.binary_location = chrome_options.binary_location = "C:\Program Files\Google\Chrome Beta\Application\chrome.exe"
     driver = webdriver.Chrome(service=ChromeService(
-        ChromeDriverManager().install()), chrome_options=chrome_options)
+        ChromeDriverManager().install()), chrome_options=chrome_options, desired_capabilities=desired_capabilities)
     # driver.minimize_window()
     driver.maximize_window()
+    driver.implicitly_wait(10)
+
     driver.get("https://www.homecenter.com.co/")
     html = driver.page_source
     time.sleep(1)
@@ -38,6 +58,7 @@ class webScraper (object):
     child_categories: list = []
     node_count = 0
     list_categories: list = []
+    average_rate_by_product = 8
 
     def get_categories_params(self):
         with open('./categories.json', 'r') as f:
@@ -66,13 +87,12 @@ class webScraper (object):
                 self.list_categories[category_i]["products"] = numpy.concatenate(
                     (self.list_categories[category_i]["products"], self.get_link_products()))
 
-        print("done")
+        print("Escaneado completo")
         print(self.list_categories)
 
     def get_link_products(self):
         list_products = []
         time.sleep(2)
-        self.driver.implicitly_wait(2)
         js_script = '''\
         var banner= document.getElementById('banner-plp');
         if(banner){
@@ -81,8 +101,8 @@ class webScraper (object):
         '''
         self.driver.execute_script(js_script)
 
-        grid = self.driver.find_element(
-            By.XPATH, '//*[@id="testId-btn-grid-view"]')
+        grid = WebDriverWait(self.driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, '//*[@id="testId-btn-grid-view"]')))
         if (grid):
             grid.click()
         linkDelproducto = self.driver.find_elements(
@@ -125,19 +145,25 @@ class webScraper (object):
         worksheet = workbook.active
         excel_row = 0
         # resize cells
+        print("TOTAL PRODUCTOS: "+str(self.get_total_products()))
         for row in range(2, self.get_total_products()+2):
             worksheet.row_dimensions[row].height = 160
             col_letter = get_column_letter(34)
             worksheet.column_dimensions[col_letter].width = 40
 
         for list_category_i in range(len(self.list_categories)):
+            print("PRODUCTOS ESCANEADOS: "+str(excel_row) +
+                  " RESTANTES: "+str(self.get_total_products()-excel_row))
+            estimated_time = (
+                ((self.get_total_products()-(excel_row+1))*self.average_rate_by_product))/3600
+            print("TIEMPO ESTIMADO: "+str(round(estimated_time, 2))+" horas")
             for products_i in range(len(self.list_categories[list_category_i]["products"])):
                 try:
-                    print("[SCAN] PRODUCTO: " +
+                    print(f'[SCAN] PRODUCTO {str(excel_row)}: ' +
                           self.list_categories[list_category_i]["products"][products_i]['link'])
                     self.driver.get(
                         self.list_categories[list_category_i]["products"][products_i]['link'])
-                    time.sleep(2.5)
+                    time.sleep(2)
                     titulo = self._normalice_string(self.driver.find_element(
                         By.XPATH, '//*[@id="__next"]/div/div/div[4]/div[2]/div[1]/div[1]/h1').text)
                     precio = self.driver.find_element(
@@ -171,7 +197,7 @@ class webScraper (object):
                     image_to_save.thumbnail((200, 200))
                     image_to_save.save(image_path, optimize=True, quality=95)
 
-                    time.sleep(3)
+                    time.sleep(2)
                     for index_categories in range(len(categories)):
                         worksheet.cell(row=excel_row+2, column=index_categories+1,
                                        value=categories[index_categories])
@@ -271,7 +297,7 @@ class webScraper (object):
                                    column=32, value=self.list_categories[list_category_i]["products"][products_i]['link'])
                     worksheet.cell(row=excel_row+2,
                                    column=33, value=self.list_categories[list_category_i]["products"][products_i]['id'])
-            
+
                     worksheet.add_image(Image(image_path),
                                         anchor='AH'+str(excel_row+2))
 
@@ -283,8 +309,10 @@ class webScraper (object):
                     print("[ERROR]  " + repr(e))
                     continue
 
+        print("EJECUCION COMPLETA, archivo: salida.xlsx")
         workbook.save('salida.xlsx')
         workbook.close()
+        self.driver.quit()
 
     def get_total_products(self):
         total = 0
