@@ -2,26 +2,26 @@ import io
 import json
 import numpy
 import re
-from unicodedata import normalize
-from selenium import webdriver
-from selenium.webdriver.common.by import By
 import time
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium import webdriver
-from selenium.webdriver.common.by import By
+from datetime import date
+from unicodedata import normalize
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from PIL import Image as PImage
 from openpyxl import load_workbook
-from openpyxl.drawing.image import Image
+from openpyxl.drawing.image import Image as DImage
 from openpyxl.utils import get_column_letter
-from datetime import date
 
 
-class webScraper (object):
+class WebScraper (object):
     product_list: list = []
     categories_data: dict = {}
 
@@ -45,7 +45,7 @@ class webScraper (object):
     desired_capabilities = chrome_options.to_capabilities()
     # chrome_options.binary_location = chrome_options.binary_location = "C:\Program Files\Google\Chrome Beta\Application\chrome.exe"
     driver = webdriver.Chrome(service=ChromeService(
-        ChromeDriverManager().install()), chrome_options=chrome_options, desired_capabilities=desired_capabilities)
+        ChromeDriverManager().install()), options=chrome_options, desired_capabilities=desired_capabilities)
     # driver.minimize_window()
     driver.maximize_window()
     driver.implicitly_wait(10)
@@ -58,7 +58,7 @@ class webScraper (object):
     child_categories: list = []
     node_count = 0
     list_categories: list = []
-    average_rate_by_product = 8
+    average_rate_by_product = 9
 
     def get_categories_params(self):
         with open('./categories.json', 'r') as f:
@@ -66,13 +66,11 @@ class webScraper (object):
             f.close()
         self.categories_data = json.loads(data)
 
-    def get_categories_test(self):
-        print(self.list_categories)
-
+    def scan_products(self):
+        print("Escaneando ... ")
         for category_i in range(len(self.list_categories)):
-            time.sleep(2)
             self.driver.get(
-                self.list_categories[category_i]["link"])
+                self.list_categories[category_i]["link"]+"?currentpage=1&sortBy=variant.name,asc")
             time.sleep(2)
             # se inician guardando registros primer resultado (pagina 1)
             self.list_categories[category_i]["products"] = numpy.concatenate(
@@ -83,7 +81,7 @@ class webScraper (object):
             # se guardan registros de la paginacion desde la pagina 2
             for point_links in range(len(totalButttonsPagination)-1):
                 self.driver.get(
-                    self.list_categories[category_i]["link"]+f"?currentpage={point_links+2}")
+                    self.list_categories[category_i]["link"]+f"?currentpage={point_links+2}&sortBy=variant.name,asc")
                 self.list_categories[category_i]["products"] = numpy.concatenate(
                     (self.list_categories[category_i]["products"], self.get_link_products()))
 
@@ -95,8 +93,10 @@ class webScraper (object):
         time.sleep(2)
         js_script = '''\
         var banner= document.getElementById('banner-plp');
+        var banner2= document.getElementById('testId-input-typeahead-desktop');
         if(banner){
             banner.setAttribute("hidden","");
+            banner2.setAttribute("hidden","");
         }
         '''
         self.driver.execute_script(js_script)
@@ -114,12 +114,14 @@ class webScraper (object):
         return list_products
 
     def get_total_buttons_by_pagination(self):
-        time.sleep(8)
+        time.sleep(6)
         buttons: list = []
         js_script = '''\
         var banner= document.getElementById('banner-plp');
+        var banner2= document.getElementById('testId-input-typeahead-desktop');
         if(banner){
             banner.setAttribute("hidden","");
+            banner2.setAttribute("hidden","");
         }
         '''
         self.driver.execute_script(js_script)
@@ -147,9 +149,9 @@ class webScraper (object):
         # resize cells
         print("TOTAL PRODUCTOS: "+str(self.get_total_products()))
         for row in range(2, self.get_total_products()+2):
-            worksheet.row_dimensions[row].height = 160
+            worksheet.row_dimensions[row].height = 140
             col_letter = get_column_letter(34)
-            worksheet.column_dimensions[col_letter].width = 40
+            worksheet.column_dimensions[col_letter].width = 30
 
         for list_category_i in range(len(self.list_categories)):
             print("PRODUCTOS ESCANEADOS: "+str(excel_row) +
@@ -194,10 +196,10 @@ class webScraper (object):
                         By.XPATH, '//*[@id="pdpMainImage-' + self.list_categories[list_category_i]["products"][products_i]['id'] + '"]')
                     result = image.screenshot_as_png
                     image_to_save = PImage.open(io.BytesIO(result))
-                    image_to_save.thumbnail((200, 200))
-                    image_to_save.save(image_path, optimize=True, quality=95)
-
+                    image_to_save.thumbnail((150, 150), PImage.LANCZOS)
+                    image_to_save.save(image_path, optimize=True, quality=60)
                     time.sleep(2)
+
                     for index_categories in range(len(categories)):
                         worksheet.cell(row=excel_row+2, column=index_categories+1,
                                        value=categories[index_categories])
@@ -298,7 +300,7 @@ class webScraper (object):
                     worksheet.cell(row=excel_row+2,
                                    column=33, value=self.list_categories[list_category_i]["products"][products_i]['id'])
 
-                    worksheet.add_image(Image(image_path),
+                    worksheet.add_image(DImage(image_path),
                                         anchor='AH'+str(excel_row+2))
 
                     excel_row += 1
@@ -334,17 +336,6 @@ class webScraper (object):
             normalize("NFD", text), 0, re.I
         ).strip()
 
-    def producto(self):
-        self.driver.get(
-            "https://www.homecenter.com.co/homecenter-co/product/455376/bateria-10-piezas-antiadherente-gris-talent/455376/")
-
-        linkDelproducto = self.driver.find_element(By.XPATH, '//*[@id="__next"]/div/div/div[2]/div/ol').find_elements(
-            By.CLASS_NAME, 'jsx-3306415055')[0].text
-        print(linkDelproducto)
-        print(linkDelproducto.split('\n'))
-
-        return ""
-
     def map_datasheet(self):
         dat = {}
         data_sheet = []
@@ -360,10 +351,8 @@ class webScraper (object):
         return dat
 
     def load_data(self):
-        # self._finditem(self.categories_data, '')
         for key in self.categories_data:
             self.element_depth(self.categories_data, key, [], True)
-        print(self.list_categories)
 
     def element_depth(self, grapho, current_element, analize_elements=[], reset=False):
         if reset:
@@ -432,34 +421,8 @@ class webScraper (object):
                     self.node_count = 0
 
 
-    #     time.sleep(1000)
-clase1 = webScraper()
-# clase1.get_categories()
-
-clase1.get_categories_params()
-clase1.load_data()
-clase1.get_categories_test()
-clase1.map_product_data()
-
-# clase1.scan_page()
-# clase1.producto()
-# clase1.pasarPagina()
-
-
-# # df = pd.DataFrame(elemtet_data)
-# df1 = pd.DataFrame(data=elemtet_data["Titulos"])
-# df2 = pd.DataFrame(elemtet_data["Precios"])
-
-# df4 = pd.DataFrame(data=elemtet_data["categorias"])
-# df5 = df4.to_csv("Datavajilla.csv" )
-
-# # df = pd.DataFrame({"Precios":[elemtet_data["Precios"]], "Titulos": [elemtet_data["Titulos"]]})
-# df2.to_excel("data234112.xlsx" )
-# print(df1)
-# print(df4)
-
-# print(df4)
-# print(df4.iloc[1:], "DF4 HOLA")
-
-# except Exception as error:
-#     print(f"ESTE ES EL ERROR!!! {error}")
+webScraper = WebScraper()
+webScraper.get_categories_params()
+webScraper.load_data()
+webScraper.scan_products()
+webScraper.map_product_data()
