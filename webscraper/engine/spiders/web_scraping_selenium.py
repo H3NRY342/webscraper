@@ -24,6 +24,7 @@ from openpyxl.utils import get_column_letter
 class WebScraper (object):
     product_list: list = []
     categories_data: dict = {}
+    cities_data: dict = {}
 
     # driver = 'D:\ProyectosCarToro\scraping\webscraper\webscraper\ChromeSetup.exe'
     chrome_options = webdriver.ChromeOptions()
@@ -48,9 +49,9 @@ class WebScraper (object):
         ChromeDriverManager().install()), options=chrome_options, desired_capabilities=desired_capabilities)
     # driver.minimize_window()
     driver.maximize_window()
-    driver.implicitly_wait(10)
+    driver.implicitly_wait(4)
 
-    driver.get("https://www.homecenter.com.co/")
+    driver.get("https://www.homecenter.com.co")
     html = driver.page_source
     time.sleep(1)
     botones: list = []
@@ -65,6 +66,12 @@ class WebScraper (object):
             data = f.read()
             f.close()
         self.categories_data = json.loads(data)
+
+    def get_cities_params(self):
+        with open('./cities.json', 'r') as f:
+            data = f.read()
+            f.close()
+        self.cities_data = json.loads(data)
 
     def scan_products(self):
         print("Escaneando ... ")
@@ -94,9 +101,16 @@ class WebScraper (object):
         js_script = '''\
         var banner= document.getElementById('banner-plp');
         var banner2= document.getElementById('testId-input-typeahead-desktop');
-        if(banner){
+        var banner3= document.getElementById('first-container-SmartAppBanner-b89b04a5-444c-448a-9f74-29fa30cf6487');
+
+         if(banner){
             banner.setAttribute("hidden","");
+        }
+        if(banner2){
             banner2.setAttribute("hidden","");
+        }
+        if(banner3){
+            banner3.setAttribute("hidden","");
         }
         '''
         self.driver.execute_script(js_script)
@@ -105,11 +119,11 @@ class WebScraper (object):
             EC.presence_of_element_located((By.XPATH, '//*[@id="testId-btn-grid-view"]')))
         if (grid):
             grid.click()
-        linkDelproducto = self.driver.find_elements(
+        product_link = self.driver.find_elements(
             By.XPATH, '//*[@id="title-pdp-link"]')
-        for a in linkDelproducto:
-            list_products.append({'link': a.get_attribute("href"),
-                                  'id': a.get_attribute("href").split("/")[-2]})
+        for link in product_link:
+            list_products.append({'link': link.get_attribute("href"),
+                                  'id': link.get_attribute("href").split("/")[-2]})
 
         return list_products
 
@@ -119,9 +133,16 @@ class WebScraper (object):
         js_script = '''\
         var banner= document.getElementById('banner-plp');
         var banner2= document.getElementById('testId-input-typeahead-desktop');
-        if(banner){
+        var banner3= document.getElementById('first-container-SmartAppBanner-b89b04a5-444c-448a-9f74-29fa30cf6487');
+
+       if(banner){
             banner.setAttribute("hidden","");
+        }
+        if(banner2){
             banner2.setAttribute("hidden","");
+        }
+        if(banner3){
+            banner3.setAttribute("hidden","");
         }
         '''
         self.driver.execute_script(js_script)
@@ -163,6 +184,7 @@ class WebScraper (object):
                 try:
                     print(f'[SCAN] PRODUCTO {str(excel_row)}: ' +
                           self.list_categories[list_category_i]["products"][products_i]['link'])
+                    locations = []
                     self.driver.get(
                         self.list_categories[list_category_i]["products"][products_i]['link'])
                     time.sleep(2)
@@ -303,6 +325,95 @@ class WebScraper (object):
                     worksheet.add_image(DImage(image_path),
                                         anchor='AH'+str(excel_row+2))
 
+                    for index_cities in range(len(self.cities_data['departments'])):
+                        scan = self.scan_city(self.cities_data['departments'][index_cities]
+                                              ['name'], self.cities_data['departments'][index_cities]['city'])
+                        if (len(scan) > 0):
+                            locations = numpy.concatenate((locations, scan))
+
+                    for index_location in range(len(locations)):
+                        if ('calle26' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=35, value=locations[index_location]['stock_quantity'])
+                        if ('cedritos' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=36, value=locations[index_location]['stock_quantity'])
+                        if ('av.68sur' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=37, value=locations[index_location]['stock_quantity'])
+                        if ('tintal' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=38, value=locations[index_location]['stock_quantity'])
+                        if ('suba' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=39, value=locations[index_location]['stock_quantity'])
+                        if ('calima' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=40, value=locations[index_location]['stock_quantity'])
+                        if ('calle170' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=41, value=locations[index_location]['stock_quantity'])
+                        if ('c.c.mercurio' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=42, value=locations[index_location]['stock_quantity'])
+                        if ('mosquera' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=43, value=locations[index_location]['stock_quantity'])
+                        if ('cajic' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=44, value=locations[index_location]['stock_quantity'])
+                        if ('girardot' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=45, value=locations[index_location]['stock_quantity'])
+                        if ('calinorte' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=46, value=locations[index_location]['stock_quantity'])
+                        if ('c.cjard�nplaza' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=47, value=locations[index_location]['stock_quantity'])
+                        if ('palmira,unicentro' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=48, value=locations[index_location]['stock_quantity'])
+                        if ('tulua' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=49, value=locations[index_location]['stock_quantity'])
+                        if ('barranquillacalle30' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=50, value=locations[index_location]['stock_quantity'])
+                        if ('barranquillanorte' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=51, value=locations[index_location]['stock_quantity'])
+                        if ('barranquillacentro' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=52, value=locations[index_location]['stock_quantity'])
+                        if ('cartagenalapopa' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=53, value=locations[index_location]['stock_quantity'])
+                        if ('cartagenasanfernando' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=54, value=locations[index_location]['stock_quantity'])
+                        if ('santamartac.c.buenavista' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=55, value=locations[index_location]['stock_quantity'])
+                        if ('medell�nc.c.molinos' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=56, value=locations[index_location]['stock_quantity'])
+                        if ('medell�n,sanjuan' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=57, value=locations[index_location]['stock_quantity'])
+                        if ('medell�n,envigado' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=58, value=locations[index_location]['stock_quantity'])
+                        if ('medell�n,industriales' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=59, value=locations[index_location]['stock_quantity'])
+                        if ('bello' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=60, value=locations[index_location]['stock_quantity'])
+                        if ('rionegro' in locations[index_location]['city_name'].lower().replace(" ", "")):
+                            worksheet.cell(row=excel_row+2,
+                                           column=61, value=locations[index_location]['stock_quantity'])
+
                     excel_row += 1
 
                 except Exception as e:
@@ -420,9 +531,100 @@ class WebScraper (object):
                     self.child_categories = []
                     self.node_count = 0
 
+    def scan_city(self, department_name, city_name):
+        final_locations = []
+
+        try:
+            time.sleep(.5)
+            js_script = '''\
+            var banner= document.getElementById('banner-plp');
+            var banner2= document.getElementById('testId-input-typeahead-desktop');
+            var banner3= document.getElementById('first-container-SmartAppBanner-b89b04a5-444c-448a-9f74-29fa30cf6487');
+
+            if(banner){
+                banner.setAttribute("hidden","");
+            }
+            if(banner2){
+                banner2.setAttribute("hidden","");
+            }
+            if(banner3){
+                banner3.setAttribute("hidden","");
+            }
+            '''
+            self.driver.execute_script(js_script)
+            js_script = '''\
+            window.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: 'smooth'
+            });
+            '''
+            self.driver.execute_script(js_script)
+            time.sleep(2)
+            WebDriverWait(self.driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="locationv3-content"]/div/p/span[2]'))).click()
+            time.sleep(0.7)
+            WebDriverWait(self.driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="locationv3-modal"]/div[1]/div[2]/div/div/div[3]/div[1]/div/div[2]/button'))).click()
+            time.sleep(0.7)
+            WebDriverWait(self.driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="dropdown-input-test"]'))).send_keys(department_name)
+            time.sleep(0.7)
+            WebDriverWait(self.driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="locationv3-modal"]/div[1]/div[2]/div/div/div[3]/div[1]/div/div[2]/div[2]/div[2]/button'))).click()
+            time.sleep(0.7)
+            WebDriverWait(self.driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="locationv3-modal"]/div[1]/div[2]/div/div/div[3]/div[2]/div/div[2]/button'))).click()
+            time.sleep(0.7)
+            WebDriverWait(self.driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="dropdown-input-test"]'))).send_keys(city_name)
+            time.sleep(0.7)
+            WebDriverWait(self.driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="locationv3-modal"]/div[1]/div[2]/div/div/div[3]/div[2]/div/div[2]/div[2]/div[2]/button[1]'))).click()
+            time.sleep(0.7)
+            WebDriverWait(self.driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="locationv3-modal"]/div[1]/div[2]/div/div/div[4]/button'))).click()
+            time.sleep(2)
+            WebDriverWait(self.driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div/div/div[4]/div[2]/div[3]/div[5]/div[2]/div[2]/button'))).click()
+
+            time.sleep(1)
+            js_script = '''\
+            var scrollBar = document.querySelector("div.jsx-1116510066.stores-container.jsx-150557787");
+            if(scrollBar){
+                scrollBar.scrollTop=10000;
+            }
+            '''
+            self.driver.execute_script(js_script)
+            time.sleep(1)
+
+            locations = self.driver.find_elements(
+                By.CLASS_NAME, 'jsx-626129325.store-details')
+
+            for location in locations:
+                detail = self._normalice_string(location.text).split("\n")
+                final_locations.append({
+                    'city_name': detail[0] if len(detail) > 0 else 'not-found',
+                    'direction': detail[1] if len(detail) > 1 else 'not-found',
+                    'stock_quantity': detail[2] if len(detail) > 2 else 'not-found',
+                })
+
+            time.sleep(0.5)
+            WebDriverWait(self.driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="__next"]/div/div/div[4]/div[2]/div[3]/div[6]/div[1]/span'))).click()
+            time.sleep(0.5)
+
+        except Exception as e:
+            print("[ERROR] ESCANENADO CIUDAD: " +
+                  department_name + " - "+city_name)
+            print("[ERROR]  " + repr(e))
+
+        return final_locations
+
 
 webScraper = WebScraper()
 webScraper.get_categories_params()
+webScraper.get_cities_params()
 webScraper.load_data()
 webScraper.scan_products()
 webScraper.map_product_data()
