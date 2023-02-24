@@ -25,6 +25,7 @@ class WebScraper (object):
     product_list: list = []
     categories_data: dict = {}
     cities_data: dict = {}
+    variables: dict = {}
 
     # driver = 'D:\ProyectosCarToro\scraping\webscraper\webscraper\ChromeSetup.exe'
     chrome_options = webdriver.ChromeOptions()
@@ -47,19 +48,30 @@ class WebScraper (object):
     # chrome_options.binary_location = chrome_options.binary_location = "C:\Program Files\Google\Chrome Beta\Application\chrome.exe"
     driver = webdriver.Chrome(service=ChromeService(
         ChromeDriverManager().install()), options=chrome_options, desired_capabilities=desired_capabilities)
-    # driver.minimize_window()
-    driver.maximize_window()
-    driver.implicitly_wait(4)
 
-    driver.get("https://www.homecenter.com.co")
-    html = driver.page_source
-    time.sleep(1)
     botones: list = []
     parent_categories: list = []
     child_categories: list = []
     node_count = 0
     list_categories: list = []
-    average_rate_by_product = 9
+    average_rate_by_product = 100
+
+    def init(self):
+        if (self.variables['maximize_window'] == True):
+            self.driver.maximize_window()
+        else:
+            self.driver.minimize_window()
+
+        self.driver.implicitly_wait(4)
+        self.driver.get("https://www.homecenter.com.co")
+        html = self.driver.page_source
+        time.sleep(1)
+
+    def get_variables_params(self):
+        with open('./variables.json', 'r') as f:
+            data = f.read()
+            f.close()
+        self.variables = json.loads(data)
 
     def get_categories_params(self):
         with open('./categories.json', 'r') as f:
@@ -128,7 +140,7 @@ class WebScraper (object):
         return list_products
 
     def get_total_buttons_by_pagination(self):
-        time.sleep(6)
+        time.sleep(5)
         buttons: list = []
         js_script = '''\
         var banner= document.getElementById('banner-plp');
@@ -177,9 +189,10 @@ class WebScraper (object):
         for list_category_i in range(len(self.list_categories)):
             print("PRODUCTOS ESCANEADOS: "+str(excel_row) +
                   " RESTANTES: "+str(self.get_total_products()-excel_row))
-            estimated_time = (
-                ((self.get_total_products()-(excel_row+1))*self.average_rate_by_product))/3600
-            print("TIEMPO ESTIMADO: "+str(round(estimated_time, 2))+" horas")
+            total = (self.get_total_products()-excel_row+1) * \
+                self.average_rate_by_product
+            estimated_time = self._convert_to_preferred_format(total)
+            print("TIEMPO ESTIMADO: "+str(estimated_time))
             for products_i in range(len(self.list_categories[list_category_i]["products"])):
                 try:
                     print(f'[SCAN] PRODUCTO {str(excel_row)}: ' +
@@ -434,19 +447,6 @@ class WebScraper (object):
                 len(self.list_categories[list_category_i]["products"])
         return total
 
-    def _convert_from_array_to_object(self, arr):
-        prop: dict = {}
-        for x in range(0, len(arr), 2):
-            prop[arr[x].lower().replace(" ", "_")] = arr[x+1]
-            print(prop)
-        return prop
-
-    def _normalice_string(self, text):
-        return re.sub(
-            r"([^n\u0300-\u036f]|n(?!\u0303(?![\u0300-\u036f])))[\u0300-\u036f]+", r"\1",
-            normalize("NFD", text), 0, re.I
-        ).strip()
-
     def map_datasheet(self):
         dat = {}
         data_sheet = []
@@ -535,7 +535,7 @@ class WebScraper (object):
         final_locations = []
 
         try:
-            time.sleep(.5)
+            time.sleep(0.8)
             js_script = '''\
             var banner= document.getElementById('banner-plp');
             var banner2= document.getElementById('testId-input-typeahead-desktop');
@@ -563,28 +563,28 @@ class WebScraper (object):
             time.sleep(2)
             WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="locationv3-content"]/div/p/span[2]'))).click()
-            time.sleep(0.7)
+            time.sleep(1)
             WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="locationv3-modal"]/div[1]/div[2]/div/div/div[3]/div[1]/div/div[2]/button'))).click()
-            time.sleep(0.7)
+            time.sleep(1)
             WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="dropdown-input-test"]'))).send_keys(department_name)
-            time.sleep(0.7)
+            time.sleep(1)
             WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="locationv3-modal"]/div[1]/div[2]/div/div/div[3]/div[1]/div/div[2]/div[2]/div[2]/button'))).click()
-            time.sleep(0.7)
+            time.sleep(1)
             WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="locationv3-modal"]/div[1]/div[2]/div/div/div[3]/div[2]/div/div[2]/button'))).click()
-            time.sleep(0.7)
+            time.sleep(1)
             WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="dropdown-input-test"]'))).send_keys(city_name)
-            time.sleep(0.7)
+            time.sleep(1)
             WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="locationv3-modal"]/div[1]/div[2]/div/div/div[3]/div[2]/div/div[2]/div[2]/div[2]/button[1]'))).click()
-            time.sleep(0.7)
+            time.sleep(1)
             WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="locationv3-modal"]/div[1]/div[2]/div/div/div[4]/button'))).click()
-            time.sleep(2)
+            time.sleep(3)
             WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div/div/div[4]/div[2]/div[3]/div[5]/div[2]/div[2]/button'))).click()
 
@@ -596,17 +596,24 @@ class WebScraper (object):
             }
             '''
             self.driver.execute_script(js_script)
-            time.sleep(1)
+            time.sleep(1.5)
 
             locations = self.driver.find_elements(
                 By.CLASS_NAME, 'jsx-626129325.store-details')
 
             for location in locations:
                 detail = self._normalice_string(location.text).split("\n")
+                quantity = 0
+                if len(detail) > 2:
+                    if ("solo" in detail[2].lower()):
+                        quantity = int(detail[2].split(" ")[2])
+                    if ("disponibles" in detail[2].lower()):
+                        quantity = int(detail[2].split(" ")[0])
+
                 final_locations.append({
                     'city_name': detail[0] if len(detail) > 0 else 'not-found',
                     'direction': detail[1] if len(detail) > 1 else 'not-found',
-                    'stock_quantity': detail[2] if len(detail) > 2 else 'not-found',
+                    'stock_quantity': quantity,
                 })
 
             time.sleep(0.5)
@@ -621,8 +628,31 @@ class WebScraper (object):
 
         return final_locations
 
+    def _convert_from_array_to_object(self, arr):
+        prop: dict = {}
+        for x in range(0, len(arr), 2):
+            prop[arr[x].lower().replace(" ", "_")] = arr[x+1]
+            print(prop)
+        return prop
+
+    def _normalice_string(self, text):
+        return re.sub(
+            r"([^n\u0300-\u036f]|n(?!\u0303(?![\u0300-\u036f])))[\u0300-\u036f]+", r"\1",
+            normalize("NFD", text), 0, re.I
+        ).strip()
+
+    def _convert_to_preferred_format(self, sec):
+        sec = sec % (24 * 3600)
+        hour = sec // 3600
+        sec %= 3600
+        min = sec // 60
+        sec %= 60
+        return "%02d:%02d:%02d" % (hour, min, sec)
+
 
 webScraper = WebScraper()
+webScraper.get_variables_params()
+webScraper.init()
 webScraper.get_categories_params()
 webScraper.get_cities_params()
 webScraper.load_data()
