@@ -1,0 +1,20 @@
+{
+    "departments": [
+        {
+            "name": "Cundinamarca",
+            "city": "Bogota"
+        },
+        {
+            "name": "Valle",
+            "city": "Cali"
+        },
+        {
+            "name": "Atlantico",
+            "city": "Barranquilla"
+        },
+        {
+            "name": "Antioquia",
+            "city": "Medellin"
+        }
+    ]
+}
